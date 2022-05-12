@@ -1,23 +1,29 @@
 package de.hfu;
 
 import org.junit.Test;
-import static org.junit.Assert.*;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import org.junit.Before;
 
 import de.hfu.residents.domain.Resident;
+import de.hfu.residents.repository.ResidentRepository;
 import de.hfu.residents.repository.ResidentRepositoryStub;
 import de.hfu.residents.service.BaseResidentService;
 import de.hfu.residents.service.ResidentServiceException;
+
+import static org.easymock.EasyMock.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 public class ResidentsStubTest {
 	private BaseResidentService residentService;
 	private Resident michael;
 	private Resident susanne;
 	private Resident max;
+	private List<Resident> residents;
 	
 	@SuppressWarnings("deprecation")
 	@Before
@@ -27,6 +33,11 @@ public class ResidentsStubTest {
 		this.michael = new Resident("Michael", "Meyer", "Beispielstrasse 1337", "Beispielstadt", new Date(2000, 05, 03));
 		this.susanne = new Resident("Susanne", "Beispielfrau", "EineGasse 12", "EineStadt", new Date(1998, 07, 12));
 		this.max = new Resident("Max", "Mustermann", "Musterstrasse 1", "Musterstadt", new Date(1987, 01, 30));
+		
+		this.residents = new ArrayList<>();
+		this.residents.add(michael);
+		this.residents.add(susanne);
+		this.residents.add(max);
 	}
 	
 	@Test(expected=ResidentServiceException.class, timeout=1000)
@@ -68,6 +79,22 @@ public class ResidentsStubTest {
 		
 		List<Resident> test5 = residentService.getFilteredResidentsList(max);
 		assert(test5.get(0).getGivenName().equals("Max"));
+	}
+	
+	@Test
+	public void mocktest() throws ResidentServiceException {
+		ResidentRepository repoMock = createMock(ResidentRepository.class);
+		expect(repoMock.getResidents()).andStubReturn(residents);
+
+		replay(repoMock);
+		BaseResidentService mockService = new BaseResidentService();
+		mockService.setResidentRepository(repoMock);
+		
+		mockService.getUniqueResident(max);
+		verify(repoMock);
+		
+		assertThat(mockService.getFilteredResidentsList(max).get(0), equalTo(max));
+		assertThat(mockService.getUniqueResident(susanne), equalTo(susanne));
 	}
 
 }
